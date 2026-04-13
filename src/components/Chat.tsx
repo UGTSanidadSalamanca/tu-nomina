@@ -3,7 +3,14 @@ import { GoogleGenAI } from '@google/genai';
 import { Search, Loader2, Bot } from 'lucide-react';
 import Markdown from 'react-markdown';
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+// Delay initialization to avoid top-level crash on missing API key
+let ai: any = null;
+const getAI = (apiKey: string | undefined) => {
+  if (!ai && apiKey) {
+    ai = new GoogleGenAI({ apiKey });
+  }
+  return ai;
+};
 
 export function Chat() {
   const [query, setQuery] = useState('');
@@ -18,14 +25,23 @@ export function Chat() {
     setResponse('');
 
     try {
-      const result = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+      const apiKey = process.env.GEMINI_API_KEY;
+      const aiInstance = getAI(apiKey);
+
+      if (!aiInstance) {
+        setResponse('Error: No se ha configurado la API Key de Gemini. Por favor, añádela en las variables de entorno.');
+        setLoading(false);
+        return;
+      }
+
+      const result = await aiInstance.models.generateContent({
+        model: 'gemini-2.0-flash-exp', // Use a stable or experimental model that works
         contents: query + " (Responde basándote en información actualizada sobre SACYL y normativas de nóminas en Castilla y León)",
         config: {
           tools: [{ googleSearch: {} }],
         }
       });
-      
+
       setResponse(result.text || 'No se encontró información.');
     } catch (error) {
       console.error(error);
@@ -46,15 +62,15 @@ export function Chat() {
       </div>
       <div className="p-6">
         <form onSubmit={handleSearch} className="flex gap-3 mb-6">
-          <input 
-            type="text" 
+          <input
+            type="text"
             className="flex-1 rounded-lg border-slate-300 border p-3 text-slate-700 focus:ring-2 focus:ring-red-500 outline-none"
             placeholder="Ej: ¿Cómo se calculan los trienios en SACYL?"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             disabled={loading || !query.trim()}
             className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 disabled:opacity-50 transition-colors"
           >

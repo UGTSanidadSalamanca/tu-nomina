@@ -5,33 +5,33 @@
 
 import { useState, useMemo } from 'react';
 import { Calculator, Info, AlertCircle, ChevronRight, Euro, Receipt } from 'lucide-react';
-import { 
-  POSITIONS, 
-  TRIENIOS, 
+import {
+  POSITIONS,
+  TRIENIOS,
   TRIENIOS_EXTRA,
-  CARRERA_PROFESIONAL, 
-  TURNICIDAD, 
-  GUARDIA_HORAS, 
-  NOCHES, 
-  FESTIVOS_DIURNOS 
+  CARRERA_PROFESIONAL,
+  TURNICIDAD,
+  GUARDIA_HORAS,
+  NOCHES,
+  FESTIVOS_DIURNOS
 } from './data';
-import { Chat } from './components/Chat';
+// import { Chat } from './components/Chat';
 
 export default function App() {
   const [selectedPositionId, setSelectedPositionId] = useState<string>('');
   const [trienios, setTrienios] = useState<number>(0);
   const [carrera, setCarrera] = useState<string>('');
   const [turnicidad, setTurnicidad] = useState<string>('');
-  
+
   // Atención Continuada
   const [guardiasLaborables, setGuardiasLaborables] = useState<number>(0);
   const [guardiasFestivas, setGuardiasFestivas] = useState<number>(0);
   const [guardiasEspeciales, setGuardiasEspeciales] = useState<number>(0);
-  
+
   const [nochesLaborables, setNochesLaborables] = useState<number>(0);
   const [nochesFestivas, setNochesFestivas] = useState<number>(0);
   const [nochesEspeciales, setNochesEspeciales] = useState<number>(0);
-  
+
   const [festivosDiurnos, setFestivosDiurnos] = useState<number>(0);
   const [festivosEspeciales, setFestivosEspeciales] = useState<number>(0);
 
@@ -42,12 +42,13 @@ export default function App() {
   const [diasTrabajados, setDiasTrabajados] = useState<number>(30);
 
   // Deducciones
+  const [isEventual, setIsEventual] = useState<boolean>(false);
   const [irpf, setIrpf] = useState<number>(13.65);
   const [cuotaSindical, setCuotaSindical] = useState<number>(0);
 
-  const selectedPosition = useMemo(() => 
-    POSITIONS.find(p => p.id === selectedPositionId), 
-  [selectedPositionId]);
+  const selectedPosition = useMemo(() =>
+    POSITIONS.find(p => p.id === selectedPositionId),
+    [selectedPositionId]);
 
   const isHoras = selectedPosition?.atencionContinuadaType === 'horas';
 
@@ -57,18 +58,18 @@ export default function App() {
     const factorDias = diasTrabajados / 30;
 
     // Fijas
-    const fijasBase = selectedPosition.sueldo + 
-                  selectedPosition.destino + 
-                  selectedPosition.especifico + 
-                  selectedPosition.cpFija + 
-                  selectedPosition.cam + 
-                  selectedPosition.cpFijaAm;
+    const fijasBase = selectedPosition.sueldo +
+      selectedPosition.destino +
+      selectedPosition.especifico +
+      selectedPosition.cpFija +
+      selectedPosition.cam +
+      selectedPosition.cpFijaAm;
     const fijas = fijasBase * factorDias;
 
     // Personales
     const trieniosBase = (TRIENIOS[selectedPosition.grupo] || 0) * trienios;
     const trieniosTotal = trieniosBase * factorDias;
-    
+
     let carreraBase = 0;
     if (carrera && CARRERA_PROFESIONAL[selectedPosition.tipo]?.[selectedPosition.grupo]?.[carrera]) {
       carreraBase = CARRERA_PROFESIONAL[selectedPosition.tipo][selectedPosition.grupo][carrera];
@@ -78,7 +79,7 @@ export default function App() {
 
     // Variables
     let variables = 0;
-    
+
     if (turnicidad && TURNICIDAD[turnicidad]?.[selectedPosition.grupo]) {
       variables += TURNICIDAD[turnicidad][selectedPosition.grupo] * factorDias;
     }
@@ -91,7 +92,7 @@ export default function App() {
       variables += nochesLaborables * (NOCHES.Laborable[selectedPosition.grupo] || 0);
       variables += nochesFestivas * (NOCHES.Festivo[selectedPosition.grupo] || 0);
       variables += nochesEspeciales * (NOCHES.Especial[selectedPosition.grupo] || 0);
-      
+
       variables += festivosDiurnos * (FESTIVOS_DIURNOS.Festivo[selectedPosition.grupo] || 0);
       variables += festivosEspeciales * (FESTIVOS_DIURNOS.Especial[selectedPosition.grupo] || 0);
     }
@@ -111,7 +112,8 @@ export default function App() {
     const contingenciasComunes = baseCC * 0.047; // 4.7%
     const formacionProfesional = baseCC * 0.001; // 0.1%
     const mei = baseCC * 0.0015; // 0.15% MEI 2026
-    const totalSS = contingenciasComunes + formacionProfesional + mei;
+    const desempleo = isEventual ? baseCC * 0.0155 : 0; // 1.55% para eventuales
+    const totalSS = contingenciasComunes + formacionProfesional + mei + desempleo;
 
     const baseIRPF = totalBruto;
     const irpfDeduction = baseIRPF * (irpf / 100);
@@ -133,15 +135,16 @@ export default function App() {
       formacionProfesional,
       mei,
       totalSS,
+      desempleo,
       irpfDeduction,
       totalDeducciones,
       liquido
     };
   }, [
-    selectedPosition, trienios, carrera, turnicidad, 
+    selectedPosition, trienios, carrera, turnicidad,
     guardiasLaborables, guardiasFestivas, guardiasEspeciales,
     nochesLaborables, nochesFestivas, nochesEspeciales,
-    festivosDiurnos, festivosEspeciales, isHoras, irpf, cuotaSindical, prorratearPagas, diasTrabajados
+    festivosDiurnos, festivosEspeciales, isHoras, irpf, cuotaSindical, prorratearPagas, diasTrabajados, isEventual
   ]);
 
   const formatCurrency = (value: number) => {
@@ -151,7 +154,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
       <header className="bg-red-600 text-white shadow-md border-b-4 border-red-800">
-        <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 py-3 sm:px-6 lg:px-8 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Calculator className="w-8 h-8" />
             <div>
@@ -166,9 +169,9 @@ export default function App() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          
+      <main className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+
           {/* Formulario */}
           <div className="lg:col-span-7 space-y-6">
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
@@ -183,40 +186,40 @@ export default function App() {
                   <label className="block text-sm font-medium text-slate-700 mb-2">
                     Categoría Profesional / Puesto
                   </label>
-                  <select 
+                  <select
                     className="w-full rounded-lg border-slate-300 border p-3 text-slate-700 focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all"
-                  value={selectedPositionId}
-                  onChange={(e) => {
-                    setSelectedPositionId(e.target.value);
-                    setCarrera('');
-                    setTurnicidad('');
-                    setGuardiasLaborables(0);
-                    setGuardiasFestivas(0);
-                    setGuardiasEspeciales(0);
-                    setNochesLaborables(0);
-                    setNochesFestivas(0);
-                    setNochesEspeciales(0);
-                    setFestivosDiurnos(0);
-                    setFestivosEspeciales(0);
-                  }}
-                >
-                  <option value="">Seleccione una categoría...</option>
-                  <optgroup label="Atención Especializada (Hospitales)">
-                    {POSITIONS.filter(p => p.ambito === 'Atención Especializada').map(p => (
-                      <option key={p.id} value={p.id}>{p.name}</option>
-                    ))}
-                  </optgroup>
-                  <optgroup label="Atención Primaria (Centros de Salud)">
-                    {POSITIONS.filter(p => p.ambito === 'Atención Primaria').map(p => (
-                      <option key={p.id} value={p.id}>{p.name}</option>
-                    ))}
-                  </optgroup>
-                  <optgroup label="Emergencias (SUAP / 112)">
-                    {POSITIONS.filter(p => p.ambito === 'Emergencias').map(p => (
-                      <option key={p.id} value={p.id}>{p.name}</option>
-                    ))}
-                  </optgroup>
-                </select>
+                    value={selectedPositionId}
+                    onChange={(e) => {
+                      setSelectedPositionId(e.target.value);
+                      setCarrera('');
+                      setTurnicidad('');
+                      setGuardiasLaborables(0);
+                      setGuardiasFestivas(0);
+                      setGuardiasEspeciales(0);
+                      setNochesLaborables(0);
+                      setNochesFestivas(0);
+                      setNochesEspeciales(0);
+                      setFestivosDiurnos(0);
+                      setFestivosEspeciales(0);
+                    }}
+                  >
+                    <option value="">Seleccione una categoría...</option>
+                    <optgroup label="Atención Especializada (Hospitales)">
+                      {POSITIONS.filter(p => p.ambito === 'Atención Especializada').map(p => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="Atención Primaria (Centros de Salud)">
+                      {POSITIONS.filter(p => p.ambito === 'Atención Primaria').map(p => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </optgroup>
+                    <optgroup label="Emergencias (SUAP / 112)">
+                      {POSITIONS.filter(p => p.ambito === 'Emergencias').map(p => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </optgroup>
+                  </select>
                 </div>
 
                 <div>
@@ -224,20 +227,20 @@ export default function App() {
                     Días trabajados en el mes
                   </label>
                   <div className="flex items-center gap-4">
-                    <input 
-                      type="range" 
-                      min="1" 
-                      max="30" 
-                      value={diasTrabajados} 
+                    <input
+                      type="range"
+                      min="1"
+                      max="30"
+                      value={diasTrabajados}
                       onChange={(e) => setDiasTrabajados(parseInt(e.target.value) || 30)}
                       className="flex-1 accent-red-600"
                     />
                     <div className="relative w-24">
-                      <input 
-                        type="number" 
-                        min="1" 
-                        max="30" 
-                        value={diasTrabajados} 
+                      <input
+                        type="number"
+                        min="1"
+                        max="30"
+                        value={diasTrabajados}
                         onChange={(e) => setDiasTrabajados(Math.min(30, Math.max(1, parseInt(e.target.value) || 30)))}
                         className="w-full rounded-lg border-slate-300 border p-2 pr-10 text-center text-slate-700 focus:ring-2 focus:ring-red-500 outline-none"
                       />
@@ -245,6 +248,34 @@ export default function App() {
                     </div>
                   </div>
                   <p className="text-xs text-slate-500 mt-2">Para meses completos, dejar en 30 días (estándar de nómina).</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Tipo de Personal / Contrato
+                  </label>
+                  <div className="flex gap-4">
+                    <label className="flex-1 flex items-center gap-2 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
+                      <input
+                        type="radio"
+                        name="personalType"
+                        checked={!isEventual}
+                        onChange={() => setIsEventual(false)}
+                        className="w-4 h-4 text-red-600 focus:ring-red-500"
+                      />
+                      <span className="text-sm font-medium text-slate-700">Fijo / Interino</span>
+                    </label>
+                    <label className="flex-1 flex items-center gap-2 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
+                      <input
+                        type="radio"
+                        name="personalType"
+                        checked={isEventual}
+                        onChange={() => setIsEventual(true)}
+                        className="w-4 h-4 text-red-600 focus:ring-red-500"
+                      />
+                      <span className="text-sm font-medium text-slate-700">Eventual / Sustituto</span>
+                    </label>
+                  </div>
                 </div>
 
                 {selectedPosition?.isTIS && (
@@ -267,16 +298,16 @@ export default function App() {
                   </h2>
                 </div>
                 <div className="p-6 space-y-8">
-                  
+
                   {/* Antigüedad y Carrera */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-2">
                         Antigüedad (Trienios)
                       </label>
-                      <input 
-                        type="number" 
-                        min="0" 
+                      <input
+                        type="number"
+                        min="0"
                         max="15"
                         className="w-full rounded-lg border-slate-300 border p-3 text-slate-700 focus:ring-2 focus:ring-red-500 outline-none"
                         value={trienios}
@@ -288,7 +319,7 @@ export default function App() {
                       <label className="block text-sm font-medium text-slate-700 mb-2">
                         Carrera Profesional
                       </label>
-                      <select 
+                      <select
                         className="w-full rounded-lg border-slate-300 border p-3 text-slate-700 focus:ring-2 focus:ring-red-500 outline-none"
                         value={carrera}
                         onChange={(e) => setCarrera(e.target.value)}
@@ -310,7 +341,7 @@ export default function App() {
                       <label className="block text-sm font-medium text-slate-700 mb-2">
                         Turnicidad
                       </label>
-                      <select 
+                      <select
                         className="w-full rounded-lg border-slate-300 border p-3 text-slate-700 focus:ring-2 focus:ring-red-500 outline-none"
                         value={turnicidad}
                         onChange={(e) => setTurnicidad(e.target.value)}
@@ -325,7 +356,7 @@ export default function App() {
                   {/* Atención Continuada */}
                   <div>
                     <h3 className="text-md font-medium text-slate-800 mb-4">Atención Continuada (Variables del mes)</h3>
-                    
+
                     {isHoras ? (
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div>
@@ -377,8 +408,8 @@ export default function App() {
                   <div>
                     <h3 className="text-md font-medium text-slate-800 mb-4">Pagas Extraordinarias</h3>
                     <label className="flex items-center gap-3 p-4 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
-                      <input 
-                        type="checkbox" 
+                      <input
+                        type="checkbox"
                         className="w-5 h-5 text-red-600 rounded border-slate-300 focus:ring-red-500"
                         checked={prorratearPagas}
                         onChange={(e) => setProrratearPagas(e.target.checked)}
@@ -409,8 +440,8 @@ export default function App() {
                         % I.R.P.F.
                       </label>
                       <div className="relative">
-                        <input 
-                          type="number" 
+                        <input
+                          type="number"
                           step="0.01"
                           min="0"
                           max="50"
@@ -426,8 +457,8 @@ export default function App() {
                         Cuota Sindical (Opcional)
                       </label>
                       <div className="relative">
-                        <input 
-                          type="number" 
+                        <input
+                          type="number"
                           step="0.01"
                           min="0"
                           className="w-full rounded-lg border-slate-300 border p-3 pr-8 text-slate-700 focus:ring-2 focus:ring-red-500 outline-none"
@@ -445,7 +476,7 @@ export default function App() {
 
           {/* Resumen */}
           <div className="lg:col-span-5">
-            <div className="bg-white rounded-xl shadow-lg border border-slate-200 sticky top-8 overflow-hidden">
+            <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
               <div className="bg-slate-800 p-6 text-white border-t-4 border-red-600">
                 <h2 className="text-xl font-bold flex items-center gap-2">
                   <Receipt className="w-6 h-6 text-red-400" />
@@ -453,10 +484,10 @@ export default function App() {
                 </h2>
                 <p className="text-slate-300 text-sm mt-1">Valores mensuales 2026</p>
               </div>
-              
+
               {selectedPosition && calculations ? (
                 <div className="p-6 space-y-6">
-                  
+
                   {/* Devengos */}
                   <div>
                     <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Devengos (Bruto)</h3>
@@ -467,12 +498,12 @@ export default function App() {
                       {selectedPosition.cpFija > 0 && <div className="flex justify-between"><span className="text-slate-600">C.P. Fija</span><span className="font-medium">{formatCurrency(selectedPosition.cpFija)}</span></div>}
                       <div className="flex justify-between"><span className="text-slate-600">C. Acuerdo Marco</span><span className="font-medium">{formatCurrency(selectedPosition.cam)}</span></div>
                       <div className="flex justify-between"><span className="text-slate-600">C.P. Fija (AM)</span><span className="font-medium">{formatCurrency(selectedPosition.cpFijaAm)}</span></div>
-                      
+
                       {calculations.trieniosTotal > 0 && <div className="flex justify-between"><span className="text-slate-600">Trienios ({trienios})</span><span className="font-medium">{formatCurrency(calculations.trieniosTotal)}</span></div>}
                       {calculations.carreraTotal > 0 && <div className="flex justify-between"><span className="text-slate-600">Carrera Prof. (G. {carrera})</span><span className="font-medium">{formatCurrency(calculations.carreraTotal)}</span></div>}
                       {calculations.variables > 0 && <div className="flex justify-between"><span className="text-slate-600">Atención Continuada / Turnicidad</span><span className="font-medium">{formatCurrency(calculations.variables)}</span></div>}
                       {prorratearPagas && <div className="flex justify-between"><span className="text-slate-600">Prorrateo Paga Extra</span><span className="font-medium">{formatCurrency(calculations.prorrateoExtra)}</span></div>}
-                      
+
                       <div className="flex justify-between pt-2 border-t border-slate-100 font-semibold text-slate-800">
                         <span>Total Íntegro (Bruto)</span>
                         <span>{formatCurrency(calculations.totalBruto)}</span>
@@ -486,10 +517,11 @@ export default function App() {
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between"><span className="text-slate-600">Contingencias Comunes (4.7%)</span><span className="font-medium text-red-600">-{formatCurrency(calculations.contingenciasComunes)}</span></div>
                       <div className="flex justify-between"><span className="text-slate-600">Formación Profesional (0.1%)</span><span className="font-medium text-red-600">-{formatCurrency(calculations.formacionProfesional)}</span></div>
+                      {isEventual && <div className="flex justify-between"><span className="text-slate-600">C.P. Desempleo (1.55%)</span><span className="font-medium text-red-600">-{formatCurrency(calculations.desempleo)}</span></div>}
                       <div className="flex justify-between"><span className="text-slate-600">MEI (0.15%)</span><span className="font-medium text-red-600">-{formatCurrency(calculations.mei)}</span></div>
                       <div className="flex justify-between"><span className="text-slate-600">I.R.P.F. ({irpf}%)</span><span className="font-medium text-red-600">-{formatCurrency(calculations.irpfDeduction)}</span></div>
                       {cuotaSindical > 0 && <div className="flex justify-between"><span className="text-slate-600">Cuota Sindical</span><span className="font-medium text-red-600">-{formatCurrency(cuotaSindical)}</span></div>}
-                      
+
                       <div className="flex justify-between pt-2 border-t border-slate-100 font-semibold text-slate-800">
                         <span>Total Descuentos</span>
                         <span className="text-red-600">-{formatCurrency(calculations.totalDeducciones)}</span>
@@ -521,8 +553,8 @@ export default function App() {
                 </div>
               )}
             </div>
-            
-            <Chat />
+
+            {/* <Chat /> */}
           </div>
 
         </div>
