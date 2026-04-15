@@ -36,15 +36,13 @@ export default function App() {
   const [festivosEspeciales, setFestivosEspeciales] = useState<number>(0);
 
   // Pagas Extras
-  // Pagas Extras / Tipo de Contrato
-  const [tipoContrato, setTipoContrato] = useState<string>('Fijo');
   const [prorratearPagas, setProrratearPagas] = useState<boolean>(false);
 
   // Días trabajados
   const [diasTrabajados, setDiasTrabajados] = useState<number>(30);
 
   // Deducciones
-  const isEventual = tipoContrato === 'Eventual';
+  const [isEventual, setIsEventual] = useState<boolean>(false);
   const [irpf, setIrpf] = useState<number>(13.65);
   const [cuotaSindical, setCuotaSindical] = useState<number>(0);
 
@@ -87,9 +85,9 @@ export default function App() {
     }
 
     if (isHoras) {
-      variables += guardiasLaborables * (GUARDIA_HORAS.Laborable[selectedPosition.grupo] || 0);
-      variables += guardiasFestivas * (GUARDIA_HORAS.Festivo[selectedPosition.grupo] || 0);
-      variables += guardiasEspeciales * (GUARDIA_HORAS.Especial[selectedPosition.grupo] || 0);
+      variables += guardiasLaborables * GUARDIA_HORAS.Laborable;
+      variables += guardiasFestivas * GUARDIA_HORAS.Festivo;
+      variables += guardiasEspeciales * GUARDIA_HORAS.Especial;
     } else {
       variables += nochesLaborables * (NOCHES.Laborable[selectedPosition.grupo] || 0);
       variables += nochesFestivas * (NOCHES.Festivo[selectedPosition.grupo] || 0);
@@ -146,7 +144,7 @@ export default function App() {
     selectedPosition, trienios, carrera, turnicidad,
     guardiasLaborables, guardiasFestivas, guardiasEspeciales,
     nochesLaborables, nochesFestivas, nochesEspeciales,
-    festivosDiurnos, festivosEspeciales, isHoras, irpf, cuotaSindical, tipoContrato, prorratearPagas, diasTrabajados
+    festivosDiurnos, festivosEspeciales, isHoras, irpf, cuotaSindical, prorratearPagas, diasTrabajados, isEventual
   ]);
 
   const formatCurrency = (value: number) => {
@@ -252,6 +250,34 @@ export default function App() {
                   <p className="text-xs text-slate-500 mt-2">Para meses completos, dejar en 30 días (estándar de nómina).</p>
                 </div>
 
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Tipo de Personal / Contrato
+                  </label>
+                  <div className="flex gap-4">
+                    <label className="flex-1 flex items-center gap-2 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
+                      <input
+                        type="radio"
+                        name="personalType"
+                        checked={!isEventual}
+                        onChange={() => setIsEventual(false)}
+                        className="w-4 h-4 text-red-600 focus:ring-red-500"
+                      />
+                      <span className="text-sm font-medium text-slate-700">Fijo / Interino</span>
+                    </label>
+                    <label className="flex-1 flex items-center gap-2 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
+                      <input
+                        type="radio"
+                        name="personalType"
+                        checked={isEventual}
+                        onChange={() => setIsEventual(true)}
+                        className="w-4 h-4 text-red-600 focus:ring-red-500"
+                      />
+                      <span className="text-sm font-medium text-slate-700">Eventual / Sustituto</span>
+                    </label>
+                  </div>
+                </div>
+
                 {selectedPosition?.isTIS && (
                   <div className="mt-4 p-4 bg-amber-50 rounded-lg border border-amber-200 flex gap-3 text-amber-800">
                     <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
@@ -304,11 +330,6 @@ export default function App() {
                         {CARRERA_PROFESIONAL[selectedPosition.tipo]?.[selectedPosition.grupo]?.['III'] && <option value="III">Grado III</option>}
                         {CARRERA_PROFESIONAL[selectedPosition.tipo]?.[selectedPosition.grupo]?.['IV'] && <option value="IV">Grado IV</option>}
                       </select>
-                      {carrera && (
-                        <p className="text-xs text-slate-500 mt-1">
-                          Importe: {formatCurrency(CARRERA_PROFESIONAL[selectedPosition.tipo][selectedPosition.grupo][carrera])}/mes
-                        </p>
-                      )}
                     </div>
                   </div>
 
@@ -341,17 +362,14 @@ export default function App() {
                         <div>
                           <label className="block text-sm text-slate-600 mb-1">Horas Laborables</label>
                           <input type="number" min="0" className="w-full rounded-lg border-slate-300 border p-2" value={guardiasLaborables} onChange={(e) => setGuardiasLaborables(parseInt(e.target.value) || 0)} />
-                          <p className="text-[10px] text-slate-500 mt-1">{GUARDIA_HORAS.Laborable[selectedPosition.grupo]}€/hora</p>
                         </div>
                         <div>
                           <label className="block text-sm text-slate-600 mb-1">Horas Festivas</label>
                           <input type="number" min="0" className="w-full rounded-lg border-slate-300 border p-2" value={guardiasFestivas} onChange={(e) => setGuardiasFestivas(parseInt(e.target.value) || 0)} />
-                          <p className="text-[10px] text-slate-500 mt-1">{GUARDIA_HORAS.Festivo[selectedPosition.grupo]}€/hora</p>
                         </div>
                         <div>
                           <label className="block text-sm text-slate-600 mb-1">Horas Especiales</label>
                           <input type="number" min="0" className="w-full rounded-lg border-slate-300 border p-2" value={guardiasEspeciales} onChange={(e) => setGuardiasEspeciales(parseInt(e.target.value) || 0)} />
-                          <p className="text-[10px] text-slate-500 mt-1">{GUARDIA_HORAS.Especial[selectedPosition.grupo]}€/hora</p>
                         </div>
                       </div>
                     ) : (
@@ -360,29 +378,24 @@ export default function App() {
                           <div>
                             <label className="block text-sm text-slate-600 mb-1">Noches Laborables</label>
                             <input type="number" min="0" className="w-full rounded-lg border-slate-300 border p-2" value={nochesLaborables} onChange={(e) => setNochesLaborables(parseInt(e.target.value) || 0)} />
-                            <p className="text-[10px] text-slate-500 mt-1">{NOCHES.Laborable[selectedPosition.grupo] || 0}€/noche</p>
                           </div>
                           <div>
                             <label className="block text-sm text-slate-600 mb-1">Noches Festivas</label>
                             <input type="number" min="0" className="w-full rounded-lg border-slate-300 border p-2" value={nochesFestivas} onChange={(e) => setNochesFestivas(parseInt(e.target.value) || 0)} />
-                            <p className="text-[10px] text-slate-500 mt-1">{NOCHES.Festivo[selectedPosition.grupo] || 0}€/noche</p>
                           </div>
                           <div>
                             <label className="block text-sm text-slate-600 mb-1">Noches Especiales</label>
                             <input type="number" min="0" className="w-full rounded-lg border-slate-300 border p-2" value={nochesEspeciales} onChange={(e) => setNochesEspeciales(parseInt(e.target.value) || 0)} />
-                            <p className="text-[10px] text-slate-500 mt-1">{NOCHES.Especial[selectedPosition.grupo] || 0}€/noche</p>
                           </div>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
                             <label className="block text-sm text-slate-600 mb-1">Domingos/Festivos Diurnos</label>
                             <input type="number" min="0" className="w-full rounded-lg border-slate-300 border p-2" value={festivosDiurnos} onChange={(e) => setFestivosDiurnos(parseInt(e.target.value) || 0)} />
-                            <p className="text-[10px] text-slate-500 mt-1">{FESTIVOS_DIURNOS.Festivo[selectedPosition.grupo] || 0}€/día</p>
                           </div>
                           <div>
                             <label className="block text-sm text-slate-600 mb-1">Festivos Especiales Diurnos</label>
                             <input type="number" min="0" className="w-full rounded-lg border-slate-300 border p-2" value={festivosEspeciales} onChange={(e) => setFestivosEspeciales(parseInt(e.target.value) || 0)} />
-                            <p className="text-[10px] text-slate-500 mt-1">{FESTIVOS_DIURNOS.Especial[selectedPosition.grupo] || 0}€/día</p>
                           </div>
                         </div>
                       </div>
@@ -391,41 +404,21 @@ export default function App() {
 
                   <hr className="border-slate-100" />
 
-                  {/* Tipo de Contrato */}
-                  <div className="space-y-4">
-                    <div>
-                      <h3 className="text-md font-medium text-slate-800 mb-4">Tipo de Contrato</h3>
-                      <select 
-                        className="w-full rounded-lg border-slate-300 border p-3 text-slate-700 focus:ring-2 focus:ring-red-500 outline-none"
-                        value={tipoContrato}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setTipoContrato(val);
-                          // Si es eventual, marcamos prorrateo por defecto, si es fijo lo quitamos
-                          setProrratearPagas(val === 'Eventual');
-                        }}
-                      >
-                        <option value="Fijo">Fijo</option>
-                        <option value="Eventual">Eventual</option>
-                      </select>
-                    </div>
-
-                    <div className="pt-2">
-                      <label className="flex items-center gap-3 p-4 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
-                        <input
-                          type="checkbox"
-                          className="w-5 h-5 text-red-600 rounded border-slate-300 focus:ring-red-500"
-                          checked={prorratearPagas}
-                          onChange={(e) => setProrratearPagas(e.target.checked)}
-                        />
-                        <div>
-                          <span className="block text-sm font-medium text-slate-700">Prorratear pagas extras</span>
-                          <span className="block text-xs text-slate-500">
-                            Incluir la parte proporcional de la paga extra en la nómina mensual.
-                          </span>
-                        </div>
-                      </label>
-                    </div>
+                  {/* Pagas Extraordinarias */}
+                  <div>
+                    <h3 className="text-md font-medium text-slate-800 mb-4">Pagas Extraordinarias</h3>
+                    <label className="flex items-center gap-3 p-4 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
+                      <input
+                        type="checkbox"
+                        className="w-5 h-5 text-red-600 rounded border-slate-300 focus:ring-red-500"
+                        checked={prorratearPagas}
+                        onChange={(e) => setProrratearPagas(e.target.checked)}
+                      />
+                      <div>
+                        <span className="block text-sm font-medium text-slate-700">Prorratear pagas extras</span>
+                        <span className="block text-xs text-slate-500">Incluir la parte proporcional de la paga extra en la nómina mensual (12 pagas en lugar de 14).</span>
+                      </div>
+                    </label>
                   </div>
 
                 </div>
