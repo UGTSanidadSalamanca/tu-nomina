@@ -376,10 +376,10 @@ export const TURNICIDAD: Record<string, Record<string, number>> = {
   Rotatorio: { A2: 145.41, C1: 73.21, C2: 50.51, OAP: 47.92 },
 };
 
-export const GUARDIA_HORAS = {
-  Laborable: 31.34,
-  Festivo: 34.94,
-  Especial: 44.96,
+export const GUARDIA_HORAS: Record<string, Record<string, number>> = {
+  Laborable: { A1: 31.34, A2: 20.37, C1: 15.00, C2: 12.00, OAP: 10.00 },
+  Festivo: { A1: 34.94, A2: 22.71, C1: 17.00, C2: 14.00, OAP: 12.00 },
+  Especial: { A1: 44.96, A2: 29.22, C1: 22.00, C2: 18.00, OAP: 15.00 },
 };
 
 export const NOCHES: Record<string, Record<string, number>> = {

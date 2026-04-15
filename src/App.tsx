@@ -36,13 +36,15 @@ export default function App() {
   const [festivosEspeciales, setFestivosEspeciales] = useState<number>(0);
 
   // Pagas Extras
-  const [prorratearPagas, setProrratearPagas] = useState<boolean>(false);
+  // Pagas Extras / Tipo de Contrato
+  const [tipoContrato, setTipoContrato] = useState<string>('Fijo');
+  const prorratearPagas = tipoContrato === 'Eventual';
 
   // Días trabajados
   const [diasTrabajados, setDiasTrabajados] = useState<number>(30);
 
   // Deducciones
-  const [isEventual, setIsEventual] = useState<boolean>(false);
+  const isEventual = tipoContrato === 'Eventual';
   const [irpf, setIrpf] = useState<number>(13.65);
   const [cuotaSindical, setCuotaSindical] = useState<number>(0);
 
@@ -85,9 +87,9 @@ export default function App() {
     }
 
     if (isHoras) {
-      variables += guardiasLaborables * GUARDIA_HORAS.Laborable;
-      variables += guardiasFestivas * GUARDIA_HORAS.Festivo;
-      variables += guardiasEspeciales * GUARDIA_HORAS.Especial;
+      variables += guardiasLaborables * (GUARDIA_HORAS.Laborable[selectedPosition.grupo] || 0);
+      variables += guardiasFestivas * (GUARDIA_HORAS.Festivo[selectedPosition.grupo] || 0);
+      variables += guardiasEspeciales * (GUARDIA_HORAS.Especial[selectedPosition.grupo] || 0);
     } else {
       variables += nochesLaborables * (NOCHES.Laborable[selectedPosition.grupo] || 0);
       variables += nochesFestivas * (NOCHES.Festivo[selectedPosition.grupo] || 0);
@@ -144,7 +146,7 @@ export default function App() {
     selectedPosition, trienios, carrera, turnicidad,
     guardiasLaborables, guardiasFestivas, guardiasEspeciales,
     nochesLaborables, nochesFestivas, nochesEspeciales,
-    festivosDiurnos, festivosEspeciales, isHoras, irpf, cuotaSindical, prorratearPagas, diasTrabajados, isEventual
+    festivosDiurnos, festivosEspeciales, isHoras, irpf, cuotaSindical, tipoContrato, diasTrabajados
   ]);
 
   const formatCurrency = (value: number) => {
@@ -248,34 +250,6 @@ export default function App() {
                     </div>
                   </div>
                   <p className="text-xs text-slate-500 mt-2">Para meses completos, dejar en 30 días (estándar de nómina).</p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Tipo de Personal / Contrato
-                  </label>
-                  <div className="flex gap-4">
-                    <label className="flex-1 flex items-center gap-2 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
-                      <input
-                        type="radio"
-                        name="personalType"
-                        checked={!isEventual}
-                        onChange={() => setIsEventual(false)}
-                        className="w-4 h-4 text-red-600 focus:ring-red-500"
-                      />
-                      <span className="text-sm font-medium text-slate-700">Fijo / Interino</span>
-                    </label>
-                    <label className="flex-1 flex items-center gap-2 p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
-                      <input
-                        type="radio"
-                        name="personalType"
-                        checked={isEventual}
-                        onChange={() => setIsEventual(true)}
-                        className="w-4 h-4 text-red-600 focus:ring-red-500"
-                      />
-                      <span className="text-sm font-medium text-slate-700">Eventual / Sustituto</span>
-                    </label>
-                  </div>
                 </div>
 
                 {selectedPosition?.isTIS && (
@@ -404,21 +378,22 @@ export default function App() {
 
                   <hr className="border-slate-100" />
 
-                  {/* Pagas Extraordinarias */}
+                  {/* Tipo de Contrato */}
                   <div>
-                    <h3 className="text-md font-medium text-slate-800 mb-4">Pagas Extraordinarias</h3>
-                    <label className="flex items-center gap-3 p-4 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
-                      <input
-                        type="checkbox"
-                        className="w-5 h-5 text-red-600 rounded border-slate-300 focus:ring-red-500"
-                        checked={prorratearPagas}
-                        onChange={(e) => setProrratearPagas(e.target.checked)}
-                      />
-                      <div>
-                        <span className="block text-sm font-medium text-slate-700">Prorratear pagas extras</span>
-                        <span className="block text-xs text-slate-500">Incluir la parte proporcional de la paga extra en la nómina mensual (12 pagas en lugar de 14).</span>
-                      </div>
-                    </label>
+                    <h3 className="text-md font-medium text-slate-800 mb-4">Tipo de Contrato</h3>
+                    <select 
+                      className="w-full rounded-lg border-slate-300 border p-3 text-slate-700 focus:ring-2 focus:ring-red-500 outline-none"
+                      value={tipoContrato}
+                      onChange={(e) => setTipoContrato(e.target.value)}
+                    >
+                      <option value="Fijo">Fijo</option>
+                      <option value="Eventual">Eventual</option>
+                    </select>
+                    <p className="text-xs text-slate-500 mt-2">
+                      {tipoContrato === 'Eventual' 
+                        ? 'Al ser eventual, se incluye la parte proporcional de la paga extra en la nómina mensual (prorrateo).' 
+                        : 'Al ser fijo, las pagas extras se cobran en los meses correspondientes (no se prorratean).'}
+                    </p>
                   </div>
 
                 </div>
